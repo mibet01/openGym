@@ -69,6 +69,9 @@ services:
       # the mcp service starts fine and /mcp answers that it is off.
       - MCP_BACKEND=${MCP_BACKEND:-mcp}
       - MCP_PORT=${MCP_PORT:-3100}
+      # Optional Umami analytics: both set adds Umami's script to the page (docs/SELF_HOSTING.md).
+      - UMAMI_SCRIPT_URL=${UMAMI_SCRIPT_URL:-}
+      - UMAMI_WEBSITE_ID=${UMAMI_WEBSITE_ID:-}
 
   # Optional: MCP over HTTPS, so an AI assistant that cannot start a local process (a hosted one,
   # a phone app) can use openGym's tools at https://<your host>/mcp with a scoped token from

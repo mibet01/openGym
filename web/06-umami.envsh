@@ -1,0 +1,28 @@
+#!/bin/sh
+# Optional Umami analytics (docs/SELF_HOSTING.md). With UMAMI_SCRIPT_URL and UMAMI_WEBSITE_ID set,
+# nginx adds Umami's <script> to index.html as it serves it, and the script's origin is added to
+# the Content-Security-Policy's script-src. Unset (the default), nothing changes.
+#
+# Sourced by nginx's entrypoint (an .envsh, not an .sh) so the exports reach the template
+# rendering at 20; an exit here stops the container. Both values are pasted into the nginx config
+# and the page, so anything outside a plain URL or a UUID is refused rather than escaped.
+
+UMAMI_SUB_FILTER=""
+if [ -n "${UMAMI_SCRIPT_URL:-}${UMAMI_WEBSITE_ID:-}" ]; then
+  if ! printf '%s' "${UMAMI_SCRIPT_URL:-}" | grep -Eq '^https?://[A-Za-z0-9.:-]+(/[A-Za-z0-9._~/%-]*)?$'; then
+    echo "$0: UMAMI_SCRIPT_URL=\"${UMAMI_SCRIPT_URL:-}\" is not a plain script address such as https://umami.example.com/script.js." >&2
+    exit 1
+  fi
+  if ! printf '%s' "${UMAMI_WEBSITE_ID:-}" | grep -Eq '^[0-9A-Fa-f-]{36}$'; then
+    echo "$0: UMAMI_WEBSITE_ID=\"${UMAMI_WEBSITE_ID:-}\" is not a website ID (the UUID in Umami's tracking code)." >&2
+    exit 1
+  fi
+  # No ETag or If-Modified-Since check: nginx answers those against the file on disk BEFORE
+  # sub_filter runs, so a browser that cached the page without the script would get 304 forever.
+  UMAMI_SUB_FILTER="sub_filter '</head>' '<script defer src=\"$UMAMI_SCRIPT_URL\" data-website-id=\"$UMAMI_WEBSITE_ID\"></script></head>'; etag off; if_modified_since off;"
+  umami_origin=$(printf '%s' "$UMAMI_SCRIPT_URL" | sed -E 's,^(https?://[^/]+).*,\1,')
+  # A policy of your own without "script-src 'self'" is left alone: allow the origin in it yourself.
+  CONTENT_SECURITY_POLICY=$(printf '%s' "${CONTENT_SECURITY_POLICY:-}" | sed "s,script-src 'self',script-src 'self' $umami_origin,")
+  export CONTENT_SECURITY_POLICY
+fi
+export UMAMI_SUB_FILTER

@@ -703,6 +703,18 @@ say), it gets blocked; give the `web` service a policy that allows it in `enviro
 `CONTENT_SECURITY_POLICY=frame-ancestors 'none'` for the old, minimal header. The default is in
 `web/Dockerfile`.
 
+**Umami analytics (optional).** To count visits with your own [Umami](https://umami.is), set the
+two values from its tracking code:
+
+```bash
+UMAMI_SCRIPT_URL=https://umami.example.com/script.js
+UMAMI_WEBSITE_ID=94db1cb1-74f4-4a40-ad6c-962362670409
+```
+
+The web container then adds Umami's script to the page and allows its origin in the
+Content-Security-Policy's `script-src` (a policy of your own needs that origin added by hand). Off
+by default; openGym itself sends no analytics anywhere.
+
 The web image renders its nginx config from these when the container starts, so they take effect
 on a **prebuilt image** — no rebuild. `BACKEND` and `PORT` together are what `/api` is proxied to,
 so they have to name a service the web container can actually reach on your compose network.

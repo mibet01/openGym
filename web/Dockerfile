@@ -78,7 +78,8 @@ COPY web/nginx.conf.template /etc/nginx/templates/default.conf.template
 # may not write in /docker-entrypoint.d, so the sed failed the build there.
 USER root
 COPY --chmod=755 web/05-check-base-path.sh /docker-entrypoint.d/
-RUN sed -i 's/\r$//' /docker-entrypoint.d/05-check-base-path.sh
+COPY --chmod=755 web/06-umami.envsh /docker-entrypoint.d/
+RUN sed -i 's/\r$//' /docker-entrypoint.d/05-check-base-path.sh /docker-entrypoint.d/06-umami.envsh
 USER 101
 COPY --from=build /app/frontend/dist /usr/share/nginx/html
 # The exercise stills and animations, 180 px, licensed from Gym visual for openGym only: see
@@ -110,6 +111,10 @@ ENV MEDIA_UPLOAD_MAX=112m
 # Where /mcp goes, the optional mcp container (docs/MCP_REMOTE.md).
 ENV MCP_BACKEND=mcp
 ENV MCP_PORT=3100
+# Optional Umami analytics: the tracking script's address and the website ID from Umami's tracking
+# code. Both empty (the default) adds nothing (web/06-umami.envsh).
+ENV UMAMI_SCRIPT_URL=""
+ENV UMAMI_WEBSITE_ID=""
 # Sent on every page and file. Scripts run only from this origin, plus the one inline script in
 # frontend/index.html by its hash (src/lib/csp.test.js keeps the two in step). The only frame
 # allowed is the privacy-enhanced YouTube player (youtube-nocookie.com) an exercise's video link
