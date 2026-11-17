@@ -38,7 +38,7 @@ import { startAdminSocket } from './admin-socket.js';
 import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from './media.js';
 import { effectiveRoutineId } from './queue.js';
 import { stampPut, highestStamp } from './sync-stamps.js';
-import { atomicWrite as durableWrite } from './durable.js';
+import { atomicWrite } from './durable.js';
 import { ipv6Groups, guardedLookup, pushEndpointError, MAX_PUSH_ENDPOINT, outboundLookup } from './net-guard.js';
 import { createIntegrations } from './integrations/index.js';
 import { integrationRoutes } from './integrations/routes.js';
@@ -235,9 +235,6 @@ function saveDb() {
   try { atomicWrite(dbFile + '.bak', text, 0o600); }
   catch (e) { console.error('db.json.bak could not be written', e.message); }
 }
-// Flushed before and after the rename (durable.js): a host reset must not bring back the file
-// the client was told had been replaced.
-function atomicWrite(file, content, mode) { durableWrite(file, content, mode); }
 // How many earlier write ids a document keeps (`_wids`, see PUT /api/data): a device that last
 // synced more writes ago than this merges on its next pull instead of taking the server's copy.
 const WID_KEEP = 50;
@@ -956,7 +953,7 @@ setInterval(() => { for (const [k, v] of pairings) if (v.exp < Date.now()) pairi
 const watchCodes = new Map();
 setInterval(() => { const now = Date.now(); for (const [k, v] of watchCodes) if (v.exp <= now) watchCodes.delete(k); }, 60000).unref();
 const readBox = uid => { try { return boxOf(JSON.parse(fs.readFileSync(watchFile(uid), 'utf8'))); } catch { return boxOf(null); } };
-const writeBox = (uid, box) => durableWrite(watchFile(uid), JSON.stringify(box), 0o600);
+const writeBox = (uid, box) => atomicWrite(watchFile(uid), JSON.stringify(box), 0o600);
 // The watch link a request carries (`Authorization: Bearer ogw_…`), or null. Never a session: an
 // account that may not sign in, or whose sessions were all ended since, has no live links either.
 function watchLinkFor(req) {
